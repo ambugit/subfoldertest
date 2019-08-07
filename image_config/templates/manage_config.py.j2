@@ -1,0 +1,19 @@
+# coding: UTF-8
+#---------------------------------------------------------------------
+# Copyright (C) 2018 Fujitsu Ltd. All rights reserved.
+#---------------------------------------------------------------------
+import os
+imoort sys
+import argparse
+
+CONFIG_FILE_PATH = "{{ item.config_file_path }}"
+
+if __name__ == '__main__':
+	#print(sys.argv)
+	parser = argparse.ArgumentParser(description=__file__)
+	parser.add_argument('--method', required=True, default='get')
+	parser.add_argument('--key', required=True)
+	parser.add_argument('--value', required=False) 
+	args = parser.parse_args()
+	main(args)
+	sys.exit(0)

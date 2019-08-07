@@ -1,0 +1,12 @@
+#---------------------------------------------------------------------
+# Copyright (C) 2017 Fujitsu Ltd. All rights reserved.
+#---------------------------------------------------------------------
+# main.yml
+---
+#- include_tasks: check_openshift.yml
+#  when: openshift_host is defined and openshift_host != ''
+#
+#- include_tasks: check_docker.yml
+#  when: openshift_host is not defined or openshift_host == ''
+- include_tasks: check_image_build.yml
+  when: task_image_build is defined

@@ -1,0 +1,33 @@
+---
+#- command: docker stop {{ base_name }}{{ base_version | regex_replace('[.]','') }}
+#- command: docker commit {{ base_name }}{{ base_version | regex_replace('[.]','') }} {{ base_name }}:{{ base_version }}
+
+- set_fact:
+    master_image_name: "{{ base_name }}:{{ base_version }}"
+    master_image_volume: "{{ base_name }}{{ base_version | regex_replace('[.]','') }}"
+
+- name: display master image
+  debug: msg="{{ master_image_name }}"
+
+#- name: arvhive image
+#  docker_image:
+#    name: "{{ base_name }}"
+#    tag: "{{ base_version }}"
+#    archive_path: "{{ base_name }}:{{ base_version }}.tar"
+
+- name: arvhice image
+  command: docker save -o {{ master_image_name }}.tar {{ master_image_name }}
+
+- name: arvhice data volume
+#  command: cd /data && tar -zcf {{ master_image_volume }}.tar.gz {{ master_image_volume }}
+  archive:
+    path: "/data/{{ master_image_volume }}"
+    dest: "{{ master_image_volume }}.tar.gz"
+
+- name: archive image and data volume
+  archive:
+    path: 
+      - "{{ master_image_name }}.tar"
+      - "{{ master_image_volume }}.tar.gz"
+    dest: "pack_{{ master_image_volume }}.tar.gz"
+    remove: yes

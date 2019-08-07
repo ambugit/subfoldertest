@@ -1,0 +1,23 @@
+- name: Download GoLang
+  get_url:
+         url: "https://storage.googleapis.com/golang/go1.11.linux-amd64.tar.gz"
+         dest: /root
+  register: new_archive
+- name: To extract archived file
+  unarchive:
+         src: /root/go1.11.linux-amd64.tar.gz
+         dest: /usr/local/
+         remote_src: yes
+  register: Myoutput
+#- name: To create workspace
+#  file: path=/{{item.0}}/{{item.1}} state=directory
+#  with_nested:
+#         - ['go_projects']
+#         - ['bin', 'src', 'pkg']
+#- name: Check the parameters
+#  shell: go env
+#  register: output
+#- debug:
+#         var: output
+#- name: Download Gotty
+#  command: go get github.com/yudai/gotty

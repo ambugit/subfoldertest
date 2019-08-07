@@ -1,0 +1,14 @@
+- name: check to see if pip is already installed
+  command: "pip --version"
+  ignore_errors: true
+  register: pip_is_installed
+  changed_when: false
+
+- block:
+    - name: download get-pip.py
+      get_url: url=https://bootstrap.pypa.io/get-pip.py  dest={{ tmp_dir | default('/tmp') }}
+    - name: install pip
+      command: "python {{ tmp_dir | default('/tmp') }}/get-pip.py"
+    - name: delete get-pip.py
+      file: state=absent path={{ tmp_dir | default('/tmp') }}/get-pip.py
+  when: pip_is_installed.rc != 0

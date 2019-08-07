@@ -1,0 +1,11 @@
+- name: register repo file
+  with_items:
+  - {"src":"nginx.repo", "dest":"/etc/yum.repos.d"}
+  copy: src={{ item.src }} dest={{ item.dest }}
+
+- name: install nginx
+  with_items:
+  - {'name': "nginx{{ version | default('') }}", 'state': 'latest'}
+  yum: name={{ item.name }} state={{ item.state }}
+  register: result
+- debug: msg="{{ result }}"

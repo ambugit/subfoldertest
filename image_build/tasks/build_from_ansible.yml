@@ -1,0 +1,41 @@
+#---------------------------------------------------------------------
+# Copyright (C) 2018 Fujitsu Ltd. All rights reserved.
+#---------------------------------------------------------------------
+- name: build from ansible
+  assert:
+    that:
+    - build_from_dockerfile is defined
+    - not build_from_dockerfile
+    msg: "build_from_dockerfile is true."
+
+- docker_container:
+    image: "{{ base_image }}"
+#    image: "centos:7.4.1708"
+    name: "{{ volume_name }}"
+    hostname: "{{ volume_name }}"
+    detach: "yes"
+    tty: "yes"
+    command: "/sbin/init"
+    privileged: true
+    ports:
+      - "{{ base_port }}:80"
+      - "1{{ base_port }}:22"
+#    volumes:
+#      - /var/{{ volume_name }}/lib/apa/src:/var/lib/apa/src
+#      - /var/{{ volume_name }}/lib/apa/config:/var/lib/apa/config
+#      - /var/{{ volume_name }}/lib/apa/setup:/var/lib/apa/setup
+#      - /opt/{{ volume_name }}/apa/userdata:/opt/apa/userdata
+#      - /opt/{{ volume_name }}/apa/appdata:/opt/apa/appdata
+#      - /opt/{{ volume_name }}/apa/logs:/opt/apa/logs
+
+#      - /data/{{ volume_name }}/etc/elasticsearch/elasticsearch.yml:/etc/elasticsearch/elasticsearch.yml
+#      - /data/{{ volume_name }}/etc/elasticsearch/jvm.options:/etc/elasticsearch/jvm.options
+#      - /data/{{ volume_name }}/etc/kibana/kibana.yml:/etc/kibana/kibana.yml
+#      - /data/{{ volume_name }}/etc/nginx/sites:/etc/nginx/conf.d/sites
+#      - /data/{{ volume_name }}/etc/sysconfig/elasticsearch:/etc/sysconfig/elasticsearch
+#      - /data/{{ volume_name }}/etc/sysconfig:/etc/sysconfig
+#      - /data/{{ volume_name }}/etc/nginx:/etc/nginx
+#      - /data/{{ volume_name }}/etc/elasticsearch:/etc/elasticsearch
+#      - /data/{{ volume_name }}/etc/kibana:/etc/kibana
+  register: result
+- debug: msg="{{ result }}"

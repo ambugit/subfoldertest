@@ -1,0 +1,82 @@
+- debug: msg="setup elastic"
+- lineinfile:
+    path: "/etc/elasticsearch/elasticsearch.yml"
+    state: present
+    backrefs: yes
+    backup: yes
+    regexp: "{{ item.regexp }}"
+    line: "{{ item.line }}"
+  with_items:
+  - {"regexp": "^path.data:", "line": "path.data: {{ elasticsearch_data_path | default('/opt/apa/appdata/elasticsearch') }}"}
+  - {"regexp": "^#bootstrap.memory_lock:", "line": "bootstrap.memory_lock: true"}
+- lineinfile:
+    path: "/etc/elasticsearch/elasticsearch.yml"
+    line: "{{ item.line }}"
+    backup: yes
+  with_items:
+  - {"line": "script.max_compilations_rate: {{ max_compilations_rate | default('1000/1m') }}"}
+
+- lineinfile:
+    path: "/etc/elasticsearch/jvm.options"
+    state: present
+    backrefs: yes
+    regexp: "{{ item.regexp }}"
+    backup: yes
+    line: "{{ item.line }}"
+  with_items:
+  - {"regexp": "^-Xms2g", "line": '-Xms4g'}
+  - {"regexp": "^-Xmx2g", "line": '-Xmx4g'}
+
+- lineinfile:
+    path: "/etc/sysconfig/elasticsearch"
+    state: present
+    backrefs: yes
+    backup: yes
+    regexp: "{{ item.regexp }}"
+    line: "{{ item.line }}"
+  with_items:
+    - {"regexp": "^#MAX_LOCKED_MEMORY=", "line": 'MAX_LOCKED_MEMORY=unlimited' }
+
+- stat: path="/etc/systemd/system/elasticsearch.service"
+  register: existence
+- copy: src="/usr/lib/systemd/system/elasticsearch.service" dest="/etc/systemd/system/elasticsearch.service" remote_src=yes
+  when: not existence.stat.exists
+- lineinfile:
+    dest: "/etc/systemd/system/elasticsearch.service"
+    insertafter: "^[Service]"
+    line: "LimitMEMLOCK=infinity"
+
+- with_items:
+  - {"path": "/opt/apa/appdata/elasticsearch", "state": "directory", "recurse": "yes" }
+  - {"path": "/etc/elasticsearch", "state": "directory", "recurse": "yes" }
+  - {"path": "/etc/sysconfig/elasticsearch", "state": "file", "recurse": "no" }
+  file:
+    path: "{{ item.path }}"
+    owner: "elasticsearch"
+    group: "elasticsearch"
+    state: "{{ item.state }}"
+    recurse: "{{ item.recurse }}"
+
+- stat: path="/etc/kibana/kibana.yml.bk"
+  register: existence
+- copy: src="/etc/kibana/kibana.yml" dest="/etc/kibana/kibana.yml.bk" remote_src=yes
+  when: not existence.stat.exists
+
+- lineinfile:
+    path="/etc/kibana/kibana.yml"
+    state=present
+    backrefs=yes
+    regexp="{{ item.regexp }}"
+    line="{{ item.line }}"
+  with_items:
+  - {"regexp": "^#server.basePath: ", "line": "server.basePath: {{ base_path | default('/master/kibana') }}" }
+  - {"regexp": "^#kibana.defaultAppId: ", "line": "kibana.defaultAppId: {{ defaultAppId | default('dashboard/DBOVV001') }}"}
+
+- with_items:
+  - {"path": "/etc/kibana", "state": "directory", "recurse": "yes" }
+  file:
+    path: "{{ item.path }}"
+    owner: "kibana"
+    group: "kibana"
+    state: "{{ item.state }}"
+    recurse: "{{ item.recurse }}"

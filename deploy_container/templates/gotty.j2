@@ -1,0 +1,11 @@
+location /{{ item.location}}/ {
+  proxy_set_header X-Real-IP {{ item.proxy_X_Real_IP }}
+  proxy_set_header X-Forwarded-For {{ item.proxy_X_Forwarded_For }}
+  proxy_set_header Host {{ item.proxy_host }}
+  rewrite {{ item.rewrite1}}
+  rewrite {{ item.rewrite2 }}
+  proxy_pass {{ item.proxy_pass }}
+  proxy_http_version {{ item.proxy_version }}
+  proxy_set_header Upgrade {{ item.proxy_upgrade }}
+  proxy_set_header Connection {{ item.proxy_connection }}
+}

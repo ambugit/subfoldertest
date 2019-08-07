@@ -1,0 +1,11 @@
+- name: install java jdk
+  yum: name="java-{{ version | default('1.8.0') }}-openjdk" state="latest"
+- debug: msg="HOME={{ lookup('env', 'HOME') }}, JAVA_HOME={{ lookup('env', 'JAVA_HOME') }}"
+- name: add 'JAVA_HOME' environment variables.
+  lineinfile: dest="{{ lookup('env', 'HOME') }}/.bash_profile" line="export JAVA_HOME=/usr/lib/jvm/jre-{{ version | default('1.8.0') }}-openjdk" insertafter='EOF' state=present
+  delegate_to: localhost
+- name: source the bash_profile file
+  shell: source {{ lookup('env', 'HOME') }}/.bash_profile
+  when: lookup('env', 'JAVA_HOME') == ''
+  delegate_to: localhost
+- debug: msg="JAVA_HOME={{ lookup('env', 'JAVA_HOME') }}"

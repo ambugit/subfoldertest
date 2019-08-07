@@ -1,0 +1,19 @@
+# check_docker.yml
+---
+- name: base_name should be defined
+  assert:
+    that:
+    - base_name is defined and base_name != ''
+    msg: "Set the value of 'base_name' in the inventory file."
+
+- name: base_version should be defined
+  assert:
+    that:
+    - base_version is defined and base_version != ''
+    msg: "Set the value of 'base_version' in the inventory file."
+
+- name: base_port should be defined
+  assert:
+    that:
+    - base_port is defined and base_port != ''
+    msg: "Set the value of 'base_port' in the inventory file."

@@ -1,0 +1,9 @@
+#- name: commit docker image
+#  docker:
+#    name: "{{ base_name }}{{ base_version | regex_replace('[.]','') }}"
+#    image: "{{ base_image }}"
+#    state: stopped
+
+# W.A
+- command: docker stop {{ base_name }}{{ base_version | regex_replace('[.]','') }}
+- command: docker commit {{ base_name }}{{ base_version | regex_replace('[.]','') }} {{ base_name }}:{{ base_version }}

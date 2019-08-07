@@ -1,0 +1,146 @@
+---
+   - name: Adding Created Container To Inventory
+     add_host:
+       name: "{{ container_name }}"
+       ansible_connection: docker
+#   - name: creating user,pwd,ip_address and kibana lang files
+#     copy:
+#       dest: /data/config/{{ item.file }}
+#       content: "{{ item.content }}"
+#     with_items:
+#       - {"file": "ip_address", "content": "{{ ansible_default_ipv4.address }}"}
+#       - {"file": "user", "content": "{{ container_name }}"}
+#       - {"file": "password", "content": "{{ password }}"}
+#       - {"file": "kibana_lang", "content": "{{ lang_code }}"}
+#     delegate_to: "{{ container_name }}"
+   - name: changing permission of elasticsearch file
+     file:
+       path: /etc/sysconfig/elasticsearch
+       mode: "u=rwx,g=rx,o=rx"
+     delegate_to: "{{ container_name }}"
+   - name: Changing the Permissions for elasticsearch directory
+     file:
+       path: /etc/elasticsearch
+       state: directory
+       mode: "u=rwx,g=rx,o=rx"
+       recurse: yes
+     delegate_to: "{{ container_name }}"
+   - name: Changing the Permissions for config directory
+     file:
+       path: /var/lib/apa/config
+       state: directory
+       mode: "u=rwx,g=rwx,o=rwx"
+       recurse: yes
+     delegate_to: "{{ container_name }}"
+
+   #- name: copy manage_config.py file
+   #  copy:
+   #    src: manage_config.py
+   #    dest: /data/config/manage_config.py
+   #  delegate_to: "{{ container_name }}"
+
+   - name: executing manage_config module
+     script: manage_config.py --set --key user --value {{ container_name }} --config_file /var/lib/apa//config/config.yaml
+     args:
+       executable: python2
+     delegate_to: "{{ container_name }}"
+
+   - name: executing manage_config module
+     script: manage_config.py --set --key password --value {{ password }} --config_file /var/lib/apa/config/config.yaml
+     args:
+       executable: python2
+     delegate_to: "{{ container_name }}"
+
+   - name: executing manage_config module
+     script: manage_config.py --set --key ip_address --value {{ ansible_default_ipv4.address }} --config_file /var/lib/apa/config/config.yaml
+     args:
+       executable: python2
+     delegate_to: "{{ container_name }}"
+
+   - name: executing manage_config module
+     script: manage_config.py --set --key lang --value {{ lang_code }} --config_file /var/lib/apa/config/config.yaml
+     args:
+       executable: python2
+     delegate_to: "{{ container_name }}"
+
+   - name: Modifying the kibana file
+     lineinfile:
+       path: /etc/kibana/kibana.yml
+       regexp: '^server.basePath'
+       line: 'server.basePath: "/{{ container_name }}/kibana"'
+       backup: yes
+     delegate_to: "{{ container_name }}"
+   - name: Uncommenting the user,pwd lines in nginx defaultconf file
+     replace:
+       path: /etc/nginx/conf.d/default.conf
+       regexp: '^#master#'
+       replace: ' '
+       backup: yes 
+     delegate_to: "{{ container_name }}"
+   - name: Passlib Installation
+     pip:
+       name: passlib
+     delegate_to: "{{ container_name }}"
+   - name: Creating Password file
+     htpasswd:
+       path: /var/lib/apa/config/.htpasswd
+       name: "{{ container_name }}"
+       password: "{{ password }}"
+       mode: 0640
+     delegate_to: "{{ container_name }}"
+   - include_vars:
+       file: adminuser.yml
+   - name: Creating Admin Password file
+     htpasswd:
+       path: /var/lib/apa/config/.htpasswd
+       name: "{{ admin_user }}"
+       password: "{{ admin_password }}"
+       mode: 0640
+     delegate_to: "{{ container_name }}"
+   - name: Changing permissions of var folder recuesevely
+     file:
+       path: /var
+       state: directory
+       mode: "u=rwx,g=rwx,o=rwx"
+       recurse: yes
+     delegate_to: "{{ container_name }}"
+   - name: Changing permissions of opt folder recuesevely
+     file:
+       path: /opt
+       state: directory
+       mode: "u=rwx,g=rwx,o=rwx"
+       recurse: yes
+     delegate_to: "{{ container_name }}"
+   - name: stopping the Services
+     service:
+       name: "{{ item }}"
+       state: stopped
+     with_items:
+       - 'nginx'
+       - 'kibana'
+       - 'elasticsearch'
+       - 'uwsgi-reports'
+     delegate_to: "{{ container_name }}"
+   - name: starting the Services
+     service:
+       name: "{{ item }}"
+       state: started
+     with_items:
+       - 'nginx'
+       - 'kibana'
+       - 'elasticsearch'
+       - 'uwsgi-reports'
+     delegate_to: "{{ container_name }}"
+   - name: Enabling the Services
+     service:
+       name: "{{ item }}"
+       enabled: yes
+     with_items:
+       - 'nginx'
+       - 'kibana'
+       - 'elasticsearch'
+       - 'uwsgi-reports'
+     delegate_to: "{{ container_name }}"
+   - include_vars:
+       file: telemetry_vars.yml  
+   - include_tasks: task_create_kibana_telemetry.yml

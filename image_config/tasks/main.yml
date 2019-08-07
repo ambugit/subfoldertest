@@ -1,0 +1,145 @@
+#---------------------------------------------------------------------
+# Copyright (C) 2018 Fujitsu Ltd. All rights reserved.
+#---------------------------------------------------------------------
+# main.yml
+---
+- name: Config base image
+  debug: msg="{{ base_name }}:{{ base_version }}/{{ base_port }}"
+
+- name: init yum
+  command: yum clean metadata
+  args:
+    warn: no
+- yum: name="epel-release" state="latest"
+  register: result
+- debug: msg="{{ result }}"
+
+- yum: name="git" state="latest"
+  register: result
+- debug: msg="{{ result }}"
+
+#- name: check git config
+#  assert:
+#    that:
+#    - git_config.username is defined
+#    - git_config.passwd is defined
+#    - git_config.host is defined
+#    msg: "Set the value of 'git_config' in the config file."
+
+#- git:
+#    repo: "http://{{ git_config.username | urlencode }}:{{ git_config.passwd }}@{{ git_config.host }}{{ git_config.url }}{{ git_config.repo_name }}.git"
+#    dest: "{{ local.repo_dir }}/{{ git_config.repo_name }}"
+#    version: "{{ git_config.version }}"
+#  register: result
+#- debug: msg="{{ result }}"
+
+#- name: copy sources from repo
+#   shell: creates=/data/scripts/ \cp -fr {{ local.repo_dir }}/{{ git_config.repo_name }}/APA_Container/data/* /data
+#  register: result
+
+#- name: copy data folder [[This process takes times, dont abort]]
+#  synchronize:
+#  copy:
+#   src: ../../container/src/data
+#   dest: /
+
+- name: create setup folder
+  file:
+    path: /var/lib/apa/setup
+    state: directory
+    mode: "u=rwx,g=rwx,o=rwx" 
+
+- name: copy folder from git
+  synchronize:
+       src={{ item.src }} dest={{ item.dest }}
+  with_items:
+    - {"src":"../../container/src/var", "dest":"/"}
+    - {"src":"../../container/src/opt", "dest":"/"}
+    - {"src":"../../container/src/var/lib/apa/src/apps/django/work", "dest":"/var/lib/apa/setup/"}
+
+- set_fact:
+    local:
+      repo_dir: "/data/work/repo"
+      tmp_dir: "/data/tmp"
+
+- with_items:
+  - {"path":"/data/work", "mode":"0755"}
+  - {"path":"/data/meta", "mode":"0755"}
+  - {"path":"/data/meta/fonts", "mode":"0755"}
+  #- {"path":"/data/config", "mode":"0755"}
+  - {"path":"{{ local.repo_dir }}", "mode":"0755"}
+  - {"path":"{{ local.tmp_dir }}", "mode":"0755"}
+  file: path={{ item.path }} mode={{ item.mode }} state=directory
+- template:
+    src: "uwsgi.ini.j2"
+    dest: "/var/lib/apa/src/apps/django/uwsgi.ini"
+    backup: yes
+  with_items:
+  - {"pythonpath": "{{ uwsgi_config.pythonpath }}",
+     "chdir": "{{ uwsgi_config.chdir }}",
+     "logto": "{{ uwsgi_config.logto }}",
+     "http": "{{ uwsgi_config.http }}",
+     }
+
+- template:
+    src: "config.yml.j2"
+    dest: "/var/lib/apa/config/config.yaml"
+    mode: 0644
+  with_items:
+  - {"version": "{{ base_version }}", 
+     "lang": "{{ default_lang | default('en_US') }}",
+     "name": "{{ base_name }}{{ base_version | regex_replace('[.]','') }}",
+     "build_date": "{{ ansible_date_time.iso8601 }}",
+     "base_image": "{{ base_image }}",
+     }
+
+- with_items:
+  - {'name': 'python-devel-2.7.5', 'state': 'latest'}
+  - {'name': 'gcc-4.8.5', 'state': 'latest'}
+  - {'name': 'unzip', 'state': 'latest'}
+  - {'name': 'wget-1.14', 'state': 'latest'}
+  - {'name': 'httpd-tools', 'state': 'latest'}
+  yum: name={{ item.name }} state={{ item.state }}
+  register: result
+#- debug: msg="{{ result }}"
+
+- include_tasks: install-java.yml
+- include_tasks: install-elastic.yml
+  vars:
+    version: "-6.3.2"
+- include_tasks: install-nginx.yml
+- include_tasks: install-pip.yml
+  vars:
+    tmp_dir: "{{ local.tmp_dir }}"
+- include_tasks: install-gotty.yml
+- name: copy requirements.txt for pip
+  with_items:
+  - {"src":"requirements.txt", "dest":"{{ local.tmp_dir }}"}
+  copy: src={{ item.src }} dest={{ item.dest }}
+- pip:
+    requirements: "{{ local.tmp_dir }}/requirements.txt"
+    extra_args: -I
+  register: result
+#- debug: msg="{{ result }}"
+
+#- include_tasks: install-chromedriver.yml ansible_architecture='x86_64'
+- include_tasks: install-chromedriver.yml
+- include_tasks: setup-nginx.yml
+- include_tasks: setup-uwsgi.yml
+- include_tasks: setup-elastic.yml
+- include_tasks: setup-django.yml
+
+# W.A
+- name: WA.(In the feature, should be deleted)
+  with_items:
+  - {"src":"setTelemetryOptIn.sh", "dest":"/var/lib/apa/config"}
+  - {"src":"setup_config.sh", "dest":"/var/lib/apa/config"}
+  - {"src":"user_after.sh", "dest":"/var/lib/apa/config"}
+  copy: src={{ item.src }} dest={{ item.dest }}
+
+- name: remove working directory for trimdown
+  file: path="{{ item }}" state="absent"
+  with_items:
+  - "{{ local.tmp_dir }}"
+  - "{{ local.repo_dir }}"
+

@@ -1,0 +1,60 @@
+#---------------------------------------------------------------------
+# Copyright (C) 2017 Fujitsu Ltd. All rights reserved.
+#---------------------------------------------------------------------
+# main.yml
+---
+- name: Build base image
+  debug: msg="{{ build_from_dockerfile }}, {{ base_name }}:{{ base_version }}/{{ base_port }}"
+
+- set_fact: volume_name="{{ base_name }}{{ base_version | regex_replace('\.','') }}"
+- debug: msg="{{ volume_name }}"
+
+- docker_container:
+    name: "{{ volume_name }}"
+    state: absent
+
+- docker_image:
+    name: "{{ base_name }}"
+    tag: "{{ base_version }}"
+    state: absent
+
+#- stat: path="/data/{{ volume_name }}"
+#  register: existence
+#- when: existence.stat.exists
+#  file:
+#    path: /data/{{ volume_name }}
+#    state: absent
+
+- stat: path="/var/{{ volume_name }}"
+  register: existence
+- when: existence.stat.exists
+  file:
+    path: /var/{{ volume_name }}
+    state: absent
+
+- stat: path="/opt/{{ volume_name }}"
+  register: existence
+- when: existence.stat.exists
+  file:
+    path: /opt/{{ volume_name }}
+    state: absent
+
+#- stat: path="{{ item.path }}"
+#  register: existence
+#  with_items:
+#  - {"path": "/var/{{ volume_name }}"}
+#  - {"path": "/opt/{{ volume_name }}"}
+#- when: existence.stat.exists
+#  file:
+#    path: "{{ item.path }}"
+#    state: absent
+
+- include_tasks: "build_from_dockerfile.yml"
+  when:
+  - build_from_dockerfile is defined
+  - build_from_dockerfile
+
+- include_tasks: "build_from_ansible.yml"
+  when:
+  - build_from_dockerfile is defined
+  - not build_from_dockerfile

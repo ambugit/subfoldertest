@@ -1,0 +1,165 @@
+---
+     - name: playbook_container_name task
+       pause:
+          prompt: Please enter container name
+       when: no_prompt is not defined
+       register: containername
+
+     - set_fact:
+         container_name: "{{ containername.user_input }}"
+       when: no_prompt is not defined and container_name  is not defined
+
+     - name: validate for container_name
+       assert:
+         that:
+           - container_name  is  defined
+         msg: "Container name is required."
+
+     - name: playbook_password task
+       pause:
+          prompt: Please enter the password
+       when: no_prompt is not defined
+       register: password_var
+
+     - set_fact:
+         password: "{{ password_var.user_input }}"
+       when: no_prompt is not defined and password is not defined
+
+     - name: validate for password
+       assert:
+         that:
+           - password  is defined
+         msg: "Password is required."
+
+     - name: playbook_port task
+       pause:
+          prompt: Please enter the port number
+       when: no_prompt is not defined
+       register: port_var
+
+     - set_fact:
+         port: "{{ port_var.user_input }}"
+       when: no_prompt is not defined and port is not defined
+
+     - name: validate for port
+       assert:
+         that:
+           - port is defined
+         msg: "port is required."
+
+     - name: playbook_lang task
+       pause:
+          prompt: Please enter the lang details
+       when: no_prompt is not defined
+       register: lang
+
+     - set_fact:
+         lang_code: "{{ lang.user_input }}"
+       when: no_prompt is not defined and lang_code is not defined
+
+     - name: validate for lang code
+       assert:
+         that:
+           - lang is defined
+
+         msg: "lang code is required."
+
+     - name: playbook_version task
+       pause:
+          prompt: Please enter the version details
+       when: no_prompt is not defined
+       register: version_var
+
+     - set_fact:
+         version: "{{ version_var.user_input }}"
+       when: no_prompt is not defined and version is not defined
+
+     - name: validate for version code
+       assert:
+         that:
+           - version  is defined
+         msg: "version code is required."
+
+     - debug:
+          msg: user is "{{ container_name }}", pwd is "{{ password }}",port is "{{ port }}",lang is "{{ lang }}",version is "{{ version }}"
+
+     - stat:
+         path: /data/{{ container_name }}
+       register: dir_path
+     - file:
+         path: /data/{{ container_name }}
+         state: absent
+       when: dir_path.stat.isdir is defined and dir_path.stat.isdir
+
+     - name: delete container if already exits.
+       docker_container:
+         name: "{{ container_name }}"
+         state: absent
+
+     - name: Run The Docker Container
+       docker_container:
+         image: "master_base:{{ version }}"
+         name: "{{ container_name }}"
+         detach: "yes"
+         tty: "yes"
+         command: "/sbin/init"
+         privileged: true
+         ports:
+           - "{{ port }}:80"
+           - "1{{ port }}:22"
+
+         volumes:
+         #  - /data/{{ container_name }}/src:/data
+           - /var/{{ container_name }}/lib/apa/src:/var/lib/apa/src
+           - /var/{{ container_name }}/lib/apa/config:/var/lib/apa/config
+           - /var/{{ container_name }}/lib/apa/setup:/var/lib/apa/setup
+           - /opt/{{ container_name }}/apa/userdata:/opt/apa/userdata
+           - /opt/{{ container_name }}/apa/appdata:/opt/apa/appdata
+           - /opt/{{ container_name }}/apa/logs:/opt/apa/logs
+         #  - /data/{{ container_name }}/etc/sysconfig:/etc/sysconfig
+         #  - /data/{{ container_name }}/etc/nginx:/etc/nginx
+         #  - /data/{{ container_name }}/etc/elasticsearch:/etc/elasticsearch
+         #  - /data/{{ container_name }}/etc/kibana:/etc/kibana
+       register: result
+     - debug: msg="{{ result }}"
+     - set_fact: master_volume_name="master_base{{ version | regex_replace('\.','') }}" 
+     - debug:
+         msg: "{{ master_volume_name }}"
+     - name: To check whether var directory exists
+       stat:
+         path: /var/{{ master_volume_name }}
+       register: check
+       failed_when: not check.stat.exists
+     - name: copy var part
+       #shell: cp -r /data/{{ master_volume_name }}/* /data/{{ container_name }}/ 
+       shell: cp -r /var/{{ master_volume_name }}/* /var/{{ container_name }}/
+     - name: To check whether opt directory exists
+       stat:
+         path: /opt/{{ master_volume_name }}
+       register: check
+       failed_when: not check.stat.exists
+     - name: copy opt part
+       shell: cp -r /opt/{{ master_volume_name }}/* /opt/{{ container_name }}/
+     - name: creates directory if it doesnt exists.
+       file:
+        path: /etc/nginx/conf.d/sites/
+        state: directory
+        mode: 0755
+     - name: creating nginx config file.
+       template:
+         src: nginx_config.j2
+         dest: /etc/nginx/conf.d/sites/{{ container_name }}.conf
+         backup: yes
+       with_items:
+         - {"container_name": "{{ container_name }}",
+          "port": "{{ port }}"
+           }
+     - name: To reload nginx
+       systemd:
+         name: nginx
+         state: reloaded
+     - debug:
+         msg: " nginx reloaded"
+     - include_tasks: setup-gotty.yml
+     - include_tasks: nginx_proxy_settings.yml
+

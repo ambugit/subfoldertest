@@ -1,0 +1,12 @@
+- debug: msg="setup uwsgi"
+- copy: src="{{ service_file | default('uwsgi-reports.service') }}" dest="{{ service_dest_dir | default('/etc/systemd/system') }}"
+- with_items:
+  - {"path": "{{ service_dest_dir | default('/etc/systemd/system') }}/{{ service_file | default('uwsgi-reports.service') }}", "mode": "0644" }
+  - {"path": "/var/lib/apa/src/apps/django/uwsgi.ini", "mode": "0644" }
+  file: path="{{ item.path }}" mode="{{ item.mode }}"
+
+- with_items:
+  - {"path": "/var/run/uwsgi.reports", "group": "nginx", "mode": "g+w" }
+  file: path="{{ item.path }}" group="{{ item.group }}" mode="{{ item.mode }}" state="directory"
+
+

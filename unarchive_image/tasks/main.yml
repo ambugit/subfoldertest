@@ -1,0 +1,52 @@
+---
+#- command: docker stop {{ base_name }}{{ base_version | regex_replace('[.]','') }}
+#- command: docker commit {{ base_name }}{{ base_version | regex_replace('[.]','') }} {{ base_name }}:{{ base_version }}
+
+- name: input package file
+  pause:
+    prompt: Please enter package file path (absolute)
+  when: no_prompt is not defined
+  register: result
+
+- set_fact:
+    package_file_path: "{{ result.user_input }}"
+  when: no_prompt is not defined and package_file_path is not defined
+
+- name: validate for parameters
+  assert:
+    that:
+      - package_file_path is  defined
+    msg: "package_file_path name is required."
+
+#- set_fact:
+#    master_image_name: "{{ base_name }}:{{ base_version }}"
+#    master_image_volume: "{{ base_name }}{{ base_version | regex_replace('[.]','') }}"
+#
+#- name: display master image
+#  debug: msg="{{ master_image_name }}"
+
+#- name: arvhive image
+#  docker_image:
+#    name: "{{ base_name }}"
+#    tag: "{{ base_version }}"
+#    archive_path: "{{ base_name }}:{{ base_version }}.tar"
+
+- name: unarvhice package
+  unarchive:
+    src: "{{ package_file_path }}"
+    dest: .
+    remote_src: yes
+
+#- name: arvhice data volume
+##  command: cd /data && tar -zcf {{ master_image_volume }}.tar.gz {{ master_image_volume }}
+#  archive:
+#    path: "/data/{{ master_image_volume }}"
+#    dest: "{{ master_image_volume }}.tar.gz"
+
+#- name: archive image and data volume
+#  archive:
+#    path:
+#      - "{{ master_image_name }}.tar"
+#      - "{{ master_image_volume }}.tar.gz"
+#    dest: "pack_{{ master_image_volume }}.tar.gz"
+#    remove: yes

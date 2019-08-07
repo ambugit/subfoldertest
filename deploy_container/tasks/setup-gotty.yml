@@ -1,0 +1,76 @@
+- debug: msg="setup gotty"
+- name: Adding Created Container To Inventory
+  add_host:
+      name: "{{ container_name }}"
+      ansible_connection: docker
+
+- name: To create workspace
+  file: path=~/{{item.0}}/{{item.1}} state=directory
+  with_nested:
+         - ['go_projects']
+         - ['bin', 'src', 'pkg']
+  delegate_to: "{{ container_name }}"
+- name: Check the parameters
+  shell: go env
+  register: output
+  delegate_to: "{{ container_name }}"
+- debug:
+         var: output
+- name: Download Gotty
+  command: go get github.com/yudai/gotty
+  delegate_to: "{{ container_name }}"
+- name: copying binary file to root
+  shell: cp -rf /go_projects/bin /root/go_projects/
+    #src: /go_projects/bin
+    #dest: /root/go_projects/
+    #owner: root
+    #group: root
+    #mode: "u=rwx,g=rwx,o=rwx"
+  delegate_to: "{{ container_name }}"
+
+- name: creating nginx config file.
+  template:
+         src: gotty.j2
+         dest: /gotty_nginx.conf
+         backup: yes
+  with_items:
+         - {"location": "{{ location }}",
+            "proxy_X_Real_IP": "{{ proxy_X_Real_IP }}",
+            "proxy_X_Forwarded_For": "{{ proxy_X_Forwarded_For }}",
+            "proxy_host": "{{ proxy_host }}",
+            "rewrite1": "{{ rewrite1 }}",
+            "rewrite2": "{{ rewrite2 }}",
+            "proxy_pass": "{{ proxy_pass }}",
+            "proxy_version": "{{ proxy_version }}",
+            "proxy_upgrade": "{{ proxy_upgrade }}",
+            "proxy_connection": "{{ proxy_connection }}"
+           }
+#- name: Adding Created Container To Inventory
+#  add_host:
+#      name: "{{ container_name }}"
+#      ansible_connection: docker
+
+- name: copy gotty.conf from main machine to remote machine
+  copy:
+         src: /gotty_nginx.conf
+         dest: /etc/nginx/conf.d/sites/
+  delegate_to: "{{ container_name }}"
+
+- name: Erasing gotty_nginx.conf from /data/config folder after copying
+  file:
+    path: /gotty_nginx.conf
+    state: absent
+
+- name: Restarting the nginx.
+  systemd:
+       name: nginx
+       state: reloaded
+  delegate_to: "{{ container_name }}"
+- debug:
+       msg: " nginx reloaded"
+- name: command to execute gotty
+  shell: gotty -w bash </dev/null >/dev/null 2>&1 &
+  register: out_bsh
+  delegate_to: "{{ container_name }}"
+- debug:
+    var: out_bsh

@@ -1,0 +1,10 @@
+[Unit]
+Description=uWSGI service for webapp
+
+[Service]
+ExecStartPre=/bin/bash -c 'mkdir -p /var/run/uwsgi.reports; chown root:nginx /var/run/uwsgi.reports; chmod g+w /var/run/uwsgi.reports'
+ExecStart=/bin/bash -c 'uwsgi --ini /var/lib/apa/src/apps/django/uwsgi.ini'
+
+[Install]
+WantedBy=multi-user.target
+

@@ -1,0 +1,23 @@
+#---------------------------------------------------------------------
+# Copyright (C) 2018 Fujitsu Ltd. All rights reserved.
+#---------------------------------------------------------------------
+- name: build from dockerfile
+  assert:
+    that:
+    - build_from_dockerfile is defined and build_from_dockerfile
+    msg: "build_from_dockerfile is not true."
+
+- docker_image:
+    buildargs:
+      http_proxy: "{{ http_proxy | default('') }}"
+      https_proxy: "{{ https_proxy | default('') }}"
+      no_proxy: "{{ no_proxy | default('') }}"
+    path: "{{ role_path }}/files"
+    dockerfile: Dockerfile
+    name: "{{ base_name }}"
+    tag: "{{ base_version }}"
+    force: true
+  delegate_to: localhost
+  register: result
+
+- debug: msg="{{ result.results }}"

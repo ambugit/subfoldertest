@@ -1,0 +1,7 @@
+- debug: msg="setup nginx"
+- file: path="{{ conf_dir | default('/etc/nginx/conf.d') }}/sites" state="directory"
+- copy: src="{{ item.src }}" dest="{{ item.dest }}" backup="{{ item.backup | default('no') }}"
+  with_items:
+  - {"src": "{{ conf_file | default('default.conf') }}", "dest": "{{ conf_dir | default('/etc/nginx/conf.d') }}", "backup": "yes"}
+  - {"src": "sites/django.conf", "dest": "{{ conf_dir | default('/etc/nginx/conf.d') }}/sites/django.conf"}
+  - {"src": "sites/elastic.conf", "dest": "{{ conf_dir | default('/etc/nginx/conf.d') }}/sites/lastic.conf"}

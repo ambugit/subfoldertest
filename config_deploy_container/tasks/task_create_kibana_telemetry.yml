@@ -1,0 +1,65 @@
+#---------------------------------------------------------------------
+# Copyright (C) 2018 Fujitsu Ltd. All rights reserved.
+#---------------------------------------------------------------------
+- name: elastic reloading
+  systemd:
+   state: restarted
+   daemon_reload: yes
+   name: 'elasticsearch'
+  register: elas_reload
+  delegate_to: "{{ container_name }}"
+
+- debug:
+    msg: "{{ elas_reload }}"
+- name: Pausing for enabling the ES
+  wait_for: timeout=20
+  delegate_to: "{{ container_name }}"
+
+
+- name: creating .kibana index
+  uri:
+     url: http://localhost:9200/.kibana
+     method: PUT
+     body: "{{ body }}"
+     body_format: json
+     headers:
+       Content-Type: "application/json"
+  retries: 15
+  delay: 10
+  register: kib
+  until: kib.status == 200 or kib.status == 401
+  changed_when: false
+  delegate_to: "{{ container_name }}"
+- debug:
+    msg: "{{ kib }}"
+- name: Pausing for few seconds
+  wait_for: timeout=60
+  delegate_to: "{{ container_name }}"
+- name: get the kibana version
+  command: bash -c "{{ kibana_ver }} | awk '{print $0}'| awk -F 'number' '{print $2}' |awk -F ':\"' '{print $2}'|awk -F '\"' '{print $1}'"
+  args:
+    warn: no
+  register: versn
+  delegate_to: "{{ container_name }}"
+- debug:
+    msg: "{{ versn }}"
+- name: Setting the kibana version value.
+  set_fact:
+      kibana_version: "{{ versn.stdout }}"
+  delegate_to: "{{ container_name }}"
+- debug:
+    msg: "{{ kibana_version }}"
+- uri:
+    url: http://localhost:9200/.kibana/doc/config:{{ kibana_version }}
+    method: POST
+    body: "{{ telemetry }}"
+    body_format: json
+    headers:
+       Content-Type: "application/json"
+    status_code: 201
+  failed_when: false
+  register: result
+  delegate_to: "{{ container_name }}"
+- debug: msg="{{ result }}"
+
+

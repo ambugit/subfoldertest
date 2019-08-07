@@ -1,0 +1,5 @@
+#---------------------------------------------------------------------
+# Copyright (C) 2018 Fujitsu Ltd. All rights reserved.
+#---------------------------------------------------------------------
+admin_user: 'masteruser4admin!'
+admin_password: 'masterpassword4admin!'

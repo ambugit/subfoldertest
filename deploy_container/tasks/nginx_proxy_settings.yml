@@ -1,0 +1,23 @@
+- name: Create directory
+  file:
+    path: /etc/nginx/conf.d/sites/
+    state: directory
+- name: adding a line in default.conf
+  lineinfile:
+    path: /etc/nginx/conf.d/default.conf
+    line: 'include /etc/nginx/conf.d/sites/*.conf;'
+    insertafter: server {
+    backup: yes
+- name: Creating container_name.conf file
+  template:
+     src: template_nginx_proxy_set.j2
+     dest: /etc/nginx/conf.d/sites/{{ container_name }}.conf
+     backup: yes
+  with_items:
+    - {"container_name": "{{ container_name }}",
+       "port": "{{ port }}"
+      }
+- name: Reload nginx
+  systemd:
+     name: nginx
+     state: reloaded

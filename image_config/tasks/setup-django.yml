@@ -1,0 +1,21 @@
+- debug: msg="setup django"
+- stat: path="{{ project_path | default('/var/lib/apa/src/apps/django/reports') }}"
+  register: existence
+- command: "django-admin startproject {{ project_name | default('reports') }}"
+  args:
+    warn: no
+    chdir: "{{ home_dir | default('/var/lib/apa/src/apps/django/') }}"
+  when: not existence.stat.exists
+- stat: path="{{ work_path | default('/var/lib/apa/setup/work') }}"
+  register: existence
+- when: existence.stat.exists
+  shell: \cp -fr {{ work_path | default('/var/lib/apa/setup/work') }}/{{ project_name | default('reports') }}/* {{ project_path | default('/var/lib/apa/src/apps/django/reports') }}/
+  register: result
+- debug: msg="{{ result }}"
+- django_manage:
+    app_path: "{{ project_path | default('/var/lib/apa/src/apps/django/reports') }}"
+    command: migrate
+    pythonpath: "/var/lib/apa/src/scripts/shared/python/APA/gdc"
+- django_manage:
+    app_path: "{{ project_path | default('/var/lib/apa/src/apps/django/reports') }}"
+    command: "compilemessages -l {{ lang_code | default('ja') }}"

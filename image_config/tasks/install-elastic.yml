@@ -1,0 +1,20 @@
+- name: register repo file
+  with_items:
+  - {"src":"{{ repo_file | default('elastic.repo') }}", "dest":"{{ dest_dir | default('/etc/yum.repos.d') }}"}
+  copy: src={{ item.src }} dest={{ item.dest }}
+
+- name: install GPG-KEY
+  with_items:
+  - {"name":"https://packages.elastic.co/GPG-KEY-elasticsearch", "state":"present"}
+  - {"name":"https://artifacts.elastic.co/GPG-KEY-elasticsearch", "state":"present"}
+  rpm_key:
+    key: "{{ item.name }}"
+    state: "{{ item.state }}"
+
+- name: install elastic
+  with_items:
+  - {'name': "elasticsearch{{ version | default('') }}", 'state': 'latest'}
+  - {'name': "kibana{{ version | default('') }}", 'state': 'latest'}
+  yum: name={{ item.name }} state={{ item.state }}
+  register: result
+- debug: msg="{{ result }}"

@@ -1,0 +1,15 @@
+selenium
+uwsgi
+django
+elasticsearch
+python-pptx
+selene
+configparser
+#requests
+pathlib
+#django-envsettings==1.1.0
+arrow
+PyYAML
+dask[dataframe]
+fasteners
+requests

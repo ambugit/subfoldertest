@@ -1,0 +1,23 @@
+[uwsgi]
+uid = nginx
+gid = nginx
+
+#chdir = /data/apps/django/reports
+chdir = {{ item.chdir }}
+#pythonpath = /data/scripts/shared/python/APA/gdc
+pythonpath = {{ item.pythonpath }}
+module = reports.wsgi:application
+#logto = /data/apps/django/uwsgi.log
+logto = {{ item.logto }}
+
+master = true
+vacuum = true
+pidfile = /var/run/uwsgi.reports/master.pid
+#socket = /var/run/uwsgi.reports/master.sock
+#http = 127.0.0.1:8000
+http = {{ item.http }}
+
+processes = 5
+die-on-term = true
+enable-threads = True
+
