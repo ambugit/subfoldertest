@@ -9,7 +9,7 @@ configparser==3.5.0
 pathlib==1.0.1
 #django-envsettings==1.1.0
 arrow==0.12.1
-PyYAML==3.13
+PyYAML==5.4
 numpy==1.15.4
 dask[dataframe]==0.20.2
 fasteners==0.14.1
