@@ -1,6 +1,6 @@
 selenium==3.141.0
 uwsgi==2.0.17.1
-django==1.11.16
+django==2.2.24
 elasticsearch==6.3.1
 python-pptx==0.6.16
 selene==0.0.8
